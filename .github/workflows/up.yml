@@ -1,6 +1,6 @@
 name: kapi up
 
-# Reusable convergence workflow: checkout → setup-kapi → kapi-action, with
+# Reusable kapi-loop workflow: checkout → setup-kapi → kapi-action, with
 # pull-request delivery by default. One include gives a repo the whole
 # "bring translations up to date" job:
 #
