@@ -1,0 +1,81 @@
+name: kapi ship gate
+
+# Reusable quality-gate workflow: fail a pull request when a brand,
+# terminology, QA, or coverage gate is unmet (kapi check --ship, exit 3),
+# with a sticky report comment on the PR:
+#
+#   jobs:
+#     ship-gate:
+#       uses: neokapi/kapi-workflows/.github/workflows/gate.yml@v1
+#       permissions:
+#         contents: read
+#         pull-requests: write
+#
+# Ordinary builds never fail on target-language drift — the gate is the
+# explicit, opt-in enforcement point. A `reviewed` threshold reads its
+# decisions from the committed state store (.kapi-state.json); commit that
+# file in the PR or the runner sees no approvals.
+
+on:
+  workflow_call:
+    inputs:
+      project:
+        description: "Path to the .kapi recipe (-p); empty = git-style upward discovery"
+        type: string
+        default: ""
+      args:
+        description: "Arguments for kapi check"
+        type: string
+        default: "--ship"
+      plugins:
+        description: "Plugin refs for setup-kapi (registry names)"
+        type: string
+        default: "bowrain"
+      kapi-version:
+        description: "kapi CLI version. `check --ship` ships in 1.2.0; until 1.2.0 is stable this pins the release candidate"
+        type: string
+        default: "1.2.0-rc11"
+      pr-comment:
+        description: "Sticky report comment on pull-request events"
+        type: boolean
+        default: true
+      server:
+        description: "Bowrain server URL (exported as BOWRAIN_SERVER_URL)"
+        type: string
+        default: ""
+      runs-on:
+        description: "Runner label"
+        type: string
+        default: "ubuntu-latest"
+    secrets:
+      bowrain-auth-token:
+        description: "Bowrain server JWT (only needed if the gate pulls governed terminology first)"
+        required: false
+    outputs:
+      gate:
+        description: "pass or fail"
+        value: ${{ jobs.gate.outputs.gate }}
+
+jobs:
+  gate:
+    runs-on: ${{ inputs.runs-on }}
+    outputs:
+      gate: ${{ steps.kapi.outputs.gate }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: neokapi/setup-kapi@v1
+        with:
+          version: ${{ inputs.kapi-version }}
+          plugins: ${{ inputs.plugins }}
+          auth-token: ${{ secrets.bowrain-auth-token }}
+          server: ${{ inputs.server }}
+
+      - uses: neokapi/kapi-action@v1
+        id: kapi
+        with:
+          command: check
+          args: ${{ inputs.args }}
+          project: ${{ inputs.project }}
+          commit: "false"
+          pr-comment: ${{ inputs.pr-comment }}

@@ -1,0 +1,98 @@
+name: kapi up
+
+# Reusable convergence workflow: checkout → setup-kapi → kapi-action, with
+# pull-request delivery by default. One include gives a repo the whole
+# "bring translations up to date" job:
+#
+#   jobs:
+#     up:
+#       uses: neokapi/kapi-workflows/.github/workflows/up.yml@v1
+#       secrets:
+#         bowrain-auth-token: ${{ secrets.BOWRAIN_AUTH_TOKEN }}
+#       permissions:
+#         contents: write
+#         pull-requests: write
+
+on:
+  workflow_call:
+    inputs:
+      project:
+        description: "Path to the .kapi recipe (-p); empty = git-style upward discovery"
+        type: string
+        default: ""
+      args:
+        description: "Extra arguments for kapi up"
+        type: string
+        default: ""
+      create-pull-request:
+        description: "Deliver as a branch + PR (default) instead of pushing the current branch"
+        type: boolean
+        default: true
+      fail-on-parked:
+        description: "Fail the workflow when the run parks instead of delivering partial progress"
+        type: boolean
+        default: false
+      plugins:
+        description: "Plugin refs for setup-kapi (registry names)"
+        type: string
+        default: "bowrain"
+      kapi-version:
+        description: "kapi CLI version. `kapi up` ships in 1.2.0; until 1.2.0 is stable this pins the release candidate"
+        type: string
+        default: "1.2.0-rc11"
+      server:
+        description: "Bowrain server URL (exported as BOWRAIN_SERVER_URL)"
+        type: string
+        default: ""
+      runs-on:
+        description: "Runner label"
+        type: string
+        default: "ubuntu-latest"
+    secrets:
+      bowrain-auth-token:
+        description: "Bowrain server JWT (server-connected projects)"
+        required: false
+      anthropic-api-key:
+        description: "Anthropic API key (local-engine runs)"
+        required: false
+    outputs:
+      outcome:
+        description: "converged or parked"
+        value: ${{ jobs.up.outputs.outcome }}
+      passes:
+        description: "Reconciliation passes the run took"
+        value: ${{ jobs.up.outputs.passes }}
+      parked-locales:
+        description: "Locales still short of their gate"
+        value: ${{ jobs.up.outputs.parked-locales }}
+      pull-request-url:
+        description: "URL of the created PR (empty if none)"
+        value: ${{ jobs.up.outputs.pull-request-url }}
+
+jobs:
+  up:
+    runs-on: ${{ inputs.runs-on }}
+    outputs:
+      outcome: ${{ steps.kapi.outputs.outcome }}
+      passes: ${{ steps.kapi.outputs.passes }}
+      parked-locales: ${{ steps.kapi.outputs.parked-locales }}
+      pull-request-url: ${{ steps.kapi.outputs.pull-request-url }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: neokapi/setup-kapi@v1
+        with:
+          version: ${{ inputs.kapi-version }}
+          plugins: ${{ inputs.plugins }}
+          auth-token: ${{ secrets.bowrain-auth-token }}
+          server: ${{ inputs.server }}
+
+      - uses: neokapi/kapi-action@v1
+        id: kapi
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.anthropic-api-key }}
+        with:
+          project: ${{ inputs.project }}
+          args: ${{ inputs.args }}
+          create-pull-request: ${{ inputs.create-pull-request }}
+          fail-on-parked: ${{ inputs.fail-on-parked }}
