@@ -26,6 +26,25 @@ Runs `kapi up` — the convergence loop — and opens a pull request with the pr
 
 Inputs: `project`, `args`, `create-pull-request` (default `true`), `fail-on-parked`, `plugins` (default `bowrain`), `kapi-version`, `server`, `runs-on`. Outputs: `outcome`, `passes`, `parked-locales`, `pull-request-url`.
 
+### What a run does
+
+Each pass, for every language behind its ship gate: **reuse** exact translation-memory matches first (free), **translate** what remains with the configured AI provider plus the project's terminology, then **check** what was produced — placeholder integrity, inline tags, do-not-translate terms. A unit with a failing finding counts as *drafted*, not translated, so bad output can never lift a language over its gate. Passes repeat until every gate clears or nothing progresses.
+
+```mermaid
+flowchart LR
+    S[source changes] --> U[kapi up]
+    subgraph PASS ["each pass, per language behind its gate"]
+        TM["1 · reuse<br/>TM exact matches"] --> AI["2 · translate<br/>AI + terminology"] --> CK["3 · check<br/>placeholders · terms · tags"]
+    end
+    U --> PASS
+    CK -->|every gate clear| CV["converged<br/>PR with translations"]
+    CK -->|needs a person| PK["parked<br/>the review queue"]
+    PK --> RV["review & approve<br/>recorded in .kapi-state.json"]
+    RV -.->|next run sees it| U
+```
+
+Parked work is the review queue, not an error: a person reviews and approves it, the decision is recorded in the committed `.kapi-state.json` state store (or on the connected server), and the `reviewed` coverage the ship gate measures goes up — the next run and the next gate see it.
+
 ## `gate.yml` — fail PRs on unmet content quality gates
 
 ```yaml
