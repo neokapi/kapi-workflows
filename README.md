@@ -2,7 +2,7 @@
 
 Reusable GitHub Actions workflows for [kapi](https://github.com/neokapi/neokapi) — the whole continuous-localization happy path as one `uses:` line each. They compose [`setup-kapi`](https://github.com/neokapi/setup-kapi) and [`kapi-action`](https://github.com/neokapi/kapi-action); use those directly when you need a custom job shape.
 
-## `up.yml` — converge on a schedule, deliver a PR
+## `up.yml` — catch up on a schedule, deliver a PR
 
 ```yaml
 name: Translations
@@ -22,7 +22,7 @@ jobs:
       # anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}   # or local-engine runs
 ```
 
-Runs `kapi up` — the convergence loop — and opens a pull request with the produced translations and a convergence report (outcome, passes, parked locales). A run that **parks** (work remains that needs a person) still delivers what did converge; set `fail-on-parked: true` to block instead.
+Runs `kapi up` — the kapi loop — and opens a pull request with the produced translations and a kapi up report (outcome, passes, parked locales). A run that **parks** (work remains that needs a person) still delivers what it caught up; set `fail-on-parked: true` to block instead.
 
 Inputs: `project`, `args`, `create-pull-request` (default `true`), `fail-on-parked`, `plugins` (default `bowrain`), `kapi-version`, `server`, `runs-on`. Outputs: `outcome`, `passes`, `parked-locales`, `pull-request-url`.
 
@@ -37,7 +37,7 @@ flowchart LR
         TM["1 · reuse<br/>TM exact matches"] --> AI["2 · translate<br/>AI + terminology"] --> CK["3 · check<br/>placeholders · terms · tags"]
     end
     U --> PASS
-    CK -->|every gate clear| CV["converged<br/>PR with translations"]
+    CK -->|every gate met| CV["up to date<br/>PR with translations"]
     CK -->|needs a person| PK["parked<br/>the review queue"]
     PK --> RV["review & approve<br/>recorded in .kapi-state.json"]
     RV -.->|next run sees it| U
