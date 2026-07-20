@@ -20,7 +20,7 @@ on:
   workflow_call:
     inputs:
       project:
-        description: "Path to the .kapi recipe (-p); empty = git-style upward discovery"
+        description: "Path to the kapi.yaml recipe (-p); empty = git-style upward discovery"
         type: string
         default: ""
       args:
@@ -34,7 +34,7 @@ on:
       kapi-version:
         description: "kapi CLI version. `check --ship` ships in 1.2.0; until 1.2.0 is stable this pins the release candidate"
         type: string
-        default: "1.2.0-rc11"
+        default: "1.2.0-rc14"
       pr-comment:
         description: "Sticky report comment on pull-request events"
         type: boolean
