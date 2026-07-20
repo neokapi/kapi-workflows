@@ -67,7 +67,7 @@ Inputs: `project`, `args` (default `--ship`), `plugins`, `kapi-version`, `pr-com
 
 ## Versions
 
-`@v1` is a floating major tag. `kapi up` and `check --ship` ship in kapi 1.2.0; until 1.2.0 is stable the workflows pin the release candidate CLI (`kapi-version: 1.2.0-rc11`) — override the input to choose your own.
+`@v1` is a floating major tag. `kapi up` and `check --ship` ship in kapi 1.2.0; the workflows pin the CLI to `kapi-version: 1.2.0` — override the input to choose your own.
 
 ## License
 
