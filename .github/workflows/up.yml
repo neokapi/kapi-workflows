@@ -37,9 +37,9 @@ on:
         type: string
         default: "bowrain"
       kapi-version:
-        description: "kapi CLI version. `kapi up` ships in kapi 1.2.0, the pinned default"
+        description: "kapi CLI version. `kapi up` ships in 1.2.0; until 1.2.0 is stable this pins the release candidate"
         type: string
-        default: "1.2.0"
+        default: "1.2.0-rc14"
       server:
         description: "Bowrain server URL (exported as BOWRAIN_SERVER_URL)"
         type: string
