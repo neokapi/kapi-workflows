@@ -1,8 +1,8 @@
 name: kapi up
 
-# Reusable kapi-loop workflow: checkout → setup-kapi → kapi-action, with
-# pull-request delivery by default. One include gives a repo the whole
-# "bring translations up to date" job:
+# Reusable kapi-loop workflow: checkout → setup-kapi → kapi-action → deliver.
+# kapi-action reports; THIS workflow owns the delivery step (a PR by default),
+# so the composed job stays one include:
 #
 #   jobs:
 #     up:
@@ -55,6 +55,13 @@ on:
       anthropic-api-key:
         description: "Anthropic API key (local-engine runs)"
         required: false
+      deliver-token:
+        description: >-
+          Token for the delivery step. Defaults to the workflow GITHUB_TOKEN,
+          whose pushes and PRs trigger NO workflows (GitHub loop prevention) —
+          pass a fine-grained PAT or App token when CI or deploys should react
+          to the delivered translations.
+        required: false
     outputs:
       outcome:
         description: "converged or parked"
@@ -65,6 +72,9 @@ on:
       parked-locales:
         description: "Locales still short of their gate"
         value: ${{ jobs.up.outputs.parked-locales }}
+      has-changes:
+        description: "Whether the run produced changes"
+        value: ${{ jobs.up.outputs.has-changes }}
       pull-request-url:
         description: "URL of the created PR (empty if none)"
         value: ${{ jobs.up.outputs.pull-request-url }}
@@ -76,7 +86,8 @@ jobs:
       outcome: ${{ steps.kapi.outputs.outcome }}
       passes: ${{ steps.kapi.outputs.passes }}
       parked-locales: ${{ steps.kapi.outputs.parked-locales }}
-      pull-request-url: ${{ steps.kapi.outputs.pull-request-url }}
+      has-changes: ${{ steps.kapi.outputs.has-changes }}
+      pull-request-url: ${{ steps.deliver-pr.outputs.pull-request-url }}
     steps:
       - uses: actions/checkout@v6
 
@@ -94,5 +105,40 @@ jobs:
         with:
           project: ${{ inputs.project }}
           args: ${{ inputs.args }}
-          create-pull-request: ${{ inputs.create-pull-request }}
           fail-on-parked: ${{ inputs.fail-on-parked }}
+
+      - name: Deliver as a pull request
+        id: deliver-pr
+        if: steps.kapi.outputs.has-changes == 'true' && inputs.create-pull-request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.deliver-token || github.token }}
+          commit-message: "chore: update translations via kapi"
+          title: "Translations: kapi up"
+          branch: kapi/up
+          body: |
+            ## kapi up report
+
+            | | |
+            |---|---|
+            | Outcome | **${{ steps.kapi.outputs.outcome }}** |
+            | Passes | ${{ steps.kapi.outputs.passes }} |
+            | Parked locales | ${{ steps.kapi.outputs.parked-locales || '—' }} |
+
+            Parked scopes need a person — see the run log for the gate each one is short of.
+
+      - name: Deliver to the current branch
+        if: steps.kapi.outputs.has-changes == 'true' && !inputs.create-pull-request
+        env:
+          DELIVER_TOKEN: ${{ secrets.deliver-token }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: update translations via kapi"
+          if [ -n "$DELIVER_TOKEN" ]; then
+            git push "https://x-access-token:${DELIVER_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD
+          else
+            git push
+          fi

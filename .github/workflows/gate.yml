@@ -77,5 +77,4 @@ jobs:
           command: check
           args: ${{ inputs.args }}
           project: ${{ inputs.project }}
-          commit: "false"
           pr-comment: ${{ inputs.pr-comment }}
