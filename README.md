@@ -24,7 +24,7 @@ jobs:
 
 Runs `kapi up` — the kapi loop — and opens a pull request with the produced translations and a kapi up report (outcome, passes, parked locales). A run that **parks** (work remains that needs a person) still delivers what it caught up; set `fail-on-parked: true` to block instead.
 
-Inputs: `project`, `args`, `create-pull-request` (default `true`), `fail-on-parked`, `plugins` (default `bowrain`), `kapi-version`, `server`, `runs-on`. Outputs: `outcome`, `passes`, `parked-locales`, `pull-request-url`.
+Inputs: `project`, `args`, `create-pull-request` (default `true`), `fail-on-parked`, `plugins` (default `bowrain`), `kapi-version`, `server`, `runs-on`. Secrets: `bowrain-auth-token`, `anthropic-api-key`, `deliver-token` (a PAT or App token when CI/deploys should react to the delivered translations — the default `GITHUB_TOKEN` triggers no workflows). Outputs: `outcome`, `passes`, `parked-locales`, `has-changes`, `pull-request-url`.
 
 ### What a run does
 
