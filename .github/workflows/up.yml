@@ -33,13 +33,21 @@ on:
         type: boolean
         default: false
       plugins:
-        description: "Plugin refs for setup-kapi (registry names)"
+        description: "Plugin refs for setup-kapi (registry names, each optionally @version)"
         type: string
-        default: "bowrain"
+        # Pinned, and pinned to a prerelease on purpose. setup-kapi passes
+        # `--channel beta` only when a ref carries a prerelease constraint, so a
+        # bare `bowrain` resolves on stable, and stable stays at 1.1.0 until
+        # 1.2.0 ships. A 1.1.0 plugin sends the push protocol the server
+        # retired, and bowrain.cloud answers 426 telling you to upgrade.
+        default: "bowrain@1.2.0-rc29"
       kapi-version:
         description: "kapi CLI version. `kapi up` ships in 1.2.0; until 1.2.0 is stable this pins the release candidate"
         type: string
-        default: "1.2.0-rc14"
+        # Kept at the same version as the plugin above: the two share the
+        # framework and cli modules, so a matched pair is the pair that was
+        # tested together.
+        default: "1.2.0-rc29"
       server:
         description: "Bowrain server URL (exported as BOWRAIN_SERVER_URL)"
         type: string
