@@ -1,8 +1,8 @@
 name: kapi ship gate
 
-# Reusable quality-gate workflow: fail a pull request when a brand,
-# terminology, QA, or coverage gate is unmet (kapi check --ship, exit 3),
-# with a sticky report comment on the PR:
+# Reusable quality-gate workflow: fail a pull request when a voice,
+# terminology, rule-based check or coverage gate is unmet (kapi check --ship,
+# exit 3), with a sticky report comment on the PR:
 #
 #   jobs:
 #     ship-gate:
@@ -11,10 +11,10 @@ name: kapi ship gate
 #         contents: read
 #         pull-requests: write
 #
-# Ordinary builds never fail on target-language drift — the gate is the
-# explicit, opt-in enforcement point. A `reviewed` threshold reads its
-# decisions from the committed state store (.kapi-state.json); commit that
-# file in the PR or the runner sees no approvals.
+# Ordinary builds never fail on target-language drift; the gate is the
+# explicit, opt-in enforcement point. A `reviewed` threshold reads the
+# decisions `kapi commit` writes under .kapi/state/, so commit them in the PR
+# or the runner sees no approvals.
 
 on:
   workflow_call:
@@ -32,13 +32,17 @@ on:
         type: string
         default: "bowrain"
       kapi-version:
-        description: "kapi CLI version. `check --ship` ships in 1.2.0; until 1.2.0 is stable this pins the release candidate"
+        description: "kapi CLI version for setup-kapi: a release such as 1.2.0, or latest for the newest stable release"
         type: string
-        default: "1.2.0-rc14"
+        default: "1.2.0"
       pr-comment:
         description: "Sticky report comment on pull-request events"
         type: boolean
         default: true
+      fetch-depth:
+        description: "Commits to fetch, 0 for all. A diff-scoped check (--diff-range, --diff-against) reads the commits it compares, so set 0 for one"
+        type: number
+        default: 1
       server:
         description: "Bowrain server URL (exported as BOWRAIN_SERVER_URL)"
         type: string
@@ -63,6 +67,8 @@ jobs:
       gate: ${{ steps.kapi.outputs.gate }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: ${{ inputs.fetch-depth }}
 
       - uses: neokapi/setup-kapi@v1
         with:

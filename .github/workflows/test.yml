@@ -1,0 +1,81 @@
+name: Test
+
+# Calls both reusable workflows from this checkout against the source-only
+# fixture in test/fixture, which needs no provider key and no server. Nothing
+# is delivered: the fixture converges with no changes. The CLI is pinned to a
+# release that reads the fixture's recipe and has --diff-range; move it to the
+# stable release once one exists.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fixture-range:
+    name: Find the commit that last changed the fixture content
+    runs-on: ubuntu-latest
+    outputs:
+      range: ${{ steps.range.outputs.range }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - id: range
+        run: |
+          set -euo pipefail
+          sha="$(git log -1 --format=%H -- test/fixture/content)"
+          echo "range=${sha}~1..${sha}" >> "$GITHUB_OUTPUT"
+
+  gate-ship:
+    name: "gate.yml: check --ship"
+    uses: ./.github/workflows/gate.yml
+    with:
+      project: test/fixture/kapi.yaml
+      plugins: ""
+      kapi-version: "1.2.0-rc32"
+      pr-comment: false
+
+  gate-diff-range:
+    name: "gate.yml: a diff-scoped check"
+    needs: fixture-range
+    uses: ./.github/workflows/gate.yml
+    with:
+      project: test/fixture/kapi.yaml
+      args: "--diff-range ${{ needs.fixture-range.outputs.range }}"
+      fetch-depth: 0
+      plugins: ""
+      kapi-version: "1.2.0-rc32"
+      pr-comment: false
+
+  up-source-only:
+    name: "up.yml: kapi up on the source-only fixture"
+    uses: ./.github/workflows/up.yml
+    with:
+      project: test/fixture/kapi.yaml
+      plugins: ""
+      kapi-version: "1.2.0-rc32"
+
+  verify:
+    name: Verify the workflow outputs
+    needs: [gate-ship, gate-diff-range, up-source-only]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check each output
+        env:
+          SHIP_GATE: ${{ needs.gate-ship.outputs.gate }}
+          DIFF_GATE: ${{ needs.gate-diff-range.outputs.gate }}
+          OUTCOME: ${{ needs.up-source-only.outputs.outcome }}
+          HAS_CHANGES: ${{ needs.up-source-only.outputs.has-changes }}
+        run: |
+          set -euo pipefail
+          echo "gate-ship: ${SHIP_GATE}; gate-diff-range: ${DIFF_GATE}; up: ${OUTCOME}, has-changes ${HAS_CHANGES}"
+          test "${SHIP_GATE}" = pass
+          test "${DIFF_GATE}" = pass
+          test "${OUTCOME}" = converged
+          test "${HAS_CHANGES}" = false

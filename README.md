@@ -39,11 +39,11 @@ flowchart LR
     U --> PASS
     CK -->|every gate met| CV["up to date<br/>PR with translations"]
     CK -->|needs a person| PK["parked<br/>the review queue"]
-    PK --> RV["review & approve<br/>recorded in .kapi-state.json"]
+    PK --> RV["review & approve<br/>committed under .kapi/state"]
     RV -.->|next run sees it| U
 ```
 
-Parked work is the review queue, not an error: a person reviews and approves it, the decision is recorded in the committed `.kapi-state.json` state store (or on the connected server), and the `reviewed` coverage the ship gate measures goes up — the next run and the next gate see it.
+Parked work is the review queue, not an error: a person reviews and approves it, `kapi commit` records the decision under `.kapi/state/` (or the connected server records it), and the `reviewed` coverage the ship gate measures goes up. The next run and the next gate see it.
 
 ## `gate.yml` — fail PRs on unmet content quality gates
 
@@ -61,13 +61,24 @@ jobs:
       pull-requests: write
 ```
 
-Runs `kapi check --ship` — the project's bound quality gates (brand, terminology, QA) plus its ship/source coverage gates. An unmet gate exits `3`, fails the job with a distinct "gate unmet" annotation, and posts one sticky report comment on the PR. Ordinary builds never fail on target-language drift; the gate is the explicit, opt-in enforcement point.
+Runs `kapi check --ship`: the project's bound gates (voice, terminology, rule-based checks) plus its ship and source coverage gates. An unmet gate exits `3`, fails the job with a distinct "gate unmet" annotation, and posts one sticky report comment on the PR. Ordinary builds never fail on target-language drift; the gate is the explicit, opt-in enforcement point.
 
-Inputs: `project`, `args` (default `--ship`), `plugins`, `kapi-version`, `pr-comment` (default `true`), `server`, `runs-on`. Output: `gate` (`pass`/`fail`).
+Inputs: `project`, `args` (default `--ship`), `plugins`, `kapi-version`, `pr-comment` (default `true`), `fetch-depth` (default `1`), `server`, `runs-on`. Output: `gate` (`pass`/`fail`).
+
+A diff-scoped check reads the commits it compares, so pass `fetch-depth: 0` with `--diff-range` or `--diff-against`:
+
+```yaml
+jobs:
+  ship-gate:
+    uses: neokapi/kapi-workflows/.github/workflows/gate.yml@v1
+    with:
+      args: "--diff-range ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}"
+      fetch-depth: 0
+```
 
 ## Versions
 
-`@v1` is a floating major tag. `kapi up` and `check --ship` ship in kapi 1.2.0; until 1.2.0 is stable the workflows pin the release candidate CLI (`kapi-version: 1.2.0-rc14`) — override the input to choose your own.
+`@v1` is a floating major tag. The workflows install kapi 1.2.0 by default. Set `kapi-version` to another release to pin it, or to `latest` for the newest stable release.
 
 ## License
 
