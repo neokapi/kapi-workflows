@@ -1,0 +1,47 @@
+name: Must fail on main
+
+# Throwaway branch: shows that main's gate.yml cannot run a diff-scoped check,
+# once with its default CLI and once with a CLI that has --diff-range.
+on:
+  push:
+    branches: [test/main-gate-must-fail]
+
+permissions:
+  contents: read
+
+jobs:
+  fixture-range:
+    name: Find the commit that last changed the fixture content
+    runs-on: ubuntu-latest
+    outputs:
+      range: ${{ steps.range.outputs.range }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - id: range
+        run: |
+          set -euo pipefail
+          sha="$(git log -1 --format=%H -- test/fixture/content)"
+          echo "range=${sha}~1..${sha}" >> "$GITHUB_OUTPUT"
+
+  main-default-cli:
+    name: "main gate.yml, default kapi-version"
+    needs: fixture-range
+    uses: neokapi/kapi-workflows/.github/workflows/gate.yml@main
+    with:
+      project: test/fixture/kapi.yaml
+      args: "--diff-range ${{ needs.fixture-range.outputs.range }}"
+      plugins: ""
+      pr-comment: false
+
+  main-rc32-shallow:
+    name: "main gate.yml, kapi 1.2.0-rc32"
+    needs: fixture-range
+    uses: neokapi/kapi-workflows/.github/workflows/gate.yml@main
+    with:
+      project: test/fixture/kapi.yaml
+      args: "--diff-range ${{ needs.fixture-range.outputs.range }}"
+      kapi-version: "1.2.0-rc32"
+      plugins: ""
+      pr-comment: false
