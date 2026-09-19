@@ -38,7 +38,6 @@ jobs:
     with:
       project: test/fixture/kapi.yaml
       plugins: ""
-      kapi-version: "1.2.0-rc32"
       pr-comment: false
 
   gate-diff-range:
@@ -50,7 +49,6 @@ jobs:
       args: "--diff-range ${{ needs.fixture-range.outputs.range }}"
       fetch-depth: 0
       plugins: ""
-      kapi-version: "1.2.0-rc32"
       pr-comment: false
 
   up-source-only:
@@ -59,7 +57,6 @@ jobs:
     with:
       project: test/fixture/kapi.yaml
       plugins: ""
-      kapi-version: "1.2.0-rc32"
 
   verify:
     name: Verify the workflow outputs
