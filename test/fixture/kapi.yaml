@@ -1,0 +1,11 @@
+version: v1
+name: fixture
+
+# A source-only project: no target language, so kapi up converges the source
+# and kapi check --ship passes with no provider key and no server.
+defaults:
+  source_language: en
+collections:
+  - name: app
+    content:
+      - path: "content/en.json"
