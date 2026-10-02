@@ -32,6 +32,10 @@ on:
         description: "Fail the workflow when the run parks instead of delivering partial progress"
         type: boolean
         default: false
+      context-sync:
+        description: "kapi-action's context-sync: pull runs kapi context pull before kapi up, and true also runs kapi context push after it, through the backend the project's kapi.yaml declares (kapi 1.3 and later); false skips both"
+        type: string
+        default: "false"
       plugins:
         description: "Plugin refs for setup-kapi (registry names)"
         type: string
@@ -106,6 +110,7 @@ jobs:
           project: ${{ inputs.project }}
           args: ${{ inputs.args }}
           fail-on-parked: ${{ inputs.fail-on-parked }}
+          context-sync: ${{ inputs.context-sync }}
 
       - name: Deliver as a pull request
         id: deliver-pr

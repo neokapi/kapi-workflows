@@ -12,9 +12,10 @@ name: kapi ship gate
 #         pull-requests: write
 #
 # Ordinary builds never fail on target-language drift; the gate is the
-# explicit, opt-in enforcement point. A `reviewed` threshold reads the
-# decisions `kapi commit` writes under .kapi/state/, so commit them in the PR
-# or the runner sees no approvals.
+# explicit, opt-in enforcement point. An `established` threshold counts the
+# approvals recorded in the project's context, which lives in kapi's workspace
+# outside git. A project that shares its context through a backend needs
+# `context-sync: pull` (kapi 1.3 and later), or the runner sees no approvals.
 
 on:
   workflow_call:
@@ -43,6 +44,10 @@ on:
         description: "Commits to fetch, 0 for all. A diff-scoped check (--diff-range, --diff-against) reads the commits it compares, so set 0 for one"
         type: number
         default: 1
+      context-sync:
+        description: "kapi-action's context-sync: pull runs kapi context pull before the check, so the gate reads the project's context from the backend its kapi.yaml declares (kapi 1.3 and later); false skips it"
+        type: string
+        default: "false"
       server:
         description: "Bowrain server URL (exported as BOWRAIN_SERVER_URL)"
         type: string
@@ -57,7 +62,7 @@ on:
         required: false
     outputs:
       gate:
-        description: "pass or fail"
+        description: "pass or fail; empty when the check did not run"
         value: ${{ jobs.gate.outputs.gate }}
 
 jobs:
@@ -84,3 +89,4 @@ jobs:
           args: ${{ inputs.args }}
           project: ${{ inputs.project }}
           pr-comment: ${{ inputs.pr-comment }}
+          context-sync: ${{ inputs.context-sync }}
