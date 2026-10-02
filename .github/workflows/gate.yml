@@ -62,7 +62,7 @@ on:
         required: false
     outputs:
       gate:
-        description: "pass or fail"
+        description: "pass or fail; empty when the check did not run"
         value: ${{ jobs.gate.outputs.gate }}
 
 jobs:
